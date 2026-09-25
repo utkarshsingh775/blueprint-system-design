@@ -3,6 +3,7 @@ import { useRoute } from './router.js';
 import { useProgress } from './progress.js';
 import { CONCEPTS } from './data/concepts.js';
 import { CASES } from './data/cases.js';
+import { READY_LLD } from './data/lld/index.js';
 import CommandPalette from './components/CommandPalette.jsx';
 import Home from './pages/Home.jsx';
 
@@ -14,10 +15,12 @@ const Sandbox = lazy(() => import('./pages/Sandbox.jsx'));
 const Cheatsheet = lazy(() => import('./pages/Cheatsheet.jsx'));
 const Practice = lazy(() => import('./pages/Practice.jsx'));
 const References = lazy(() => import('./pages/References.jsx'));
+const Lld = lazy(() => import('./pages/Lld.jsx'));
 
 const NAV = [
   { href: '#/learn', section: 'learn', label: 'Learn' },
   { href: '#/cases', section: 'cases', label: 'Case studies' },
+  { href: '#/lld', section: 'lld', label: 'LLD' },
   { href: '#/lab', section: 'lab', label: 'Lab' },
   { href: '#/practice', section: 'practice', label: 'Practice' },
   { href: '#/sandbox', section: 'sandbox', label: 'Sandbox' },
@@ -27,8 +30,9 @@ const NAV = [
 
 function ProgressRing() {
   const p = useProgress();
-  const total = CONCEPTS.length + CASES.length;
-  const done = [...CONCEPTS, ...CASES].filter((x) => p.done[x.id]).length;
+  const all = [...CONCEPTS, ...CASES, ...READY_LLD];
+  const total = all.length;
+  const done = all.filter((x) => p.done[x.id]).length;
   const pct = done / total;
   const r = 13;
   const c = 2 * Math.PI * r;
@@ -51,6 +55,8 @@ function Page({ route }) {
       return route.id ? <CaseStudy id={route.id} /> : <Cases />;
     case 'lab':
       return <Lab id={route.id} />;
+    case 'lld':
+      return <Lld id={route.id} />;
     case 'sandbox':
       return <Sandbox template={route.id} />;
     case 'cheatsheet':

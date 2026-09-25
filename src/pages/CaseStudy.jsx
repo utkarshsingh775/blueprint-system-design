@@ -6,6 +6,21 @@ import Icon from '../components/Icon.jsx';
 import { Points, Tradeoffs, Quiz, DoneToggle, RefList } from '../components/Content.jsx';
 import { conceptById } from '../data/concepts.js';
 import { useProgress } from '../progress.js';
+import { CASE_DB } from '../data/db.js';
+import { Rich } from '../components/FlowDiagram.jsx';
+
+const KEY_HELP = {
+  PK: 'Primary key: uniquely identifies a row',
+  PARTITION: 'Partition key: decides which machine stores the row',
+  SORT: 'Sort / clustering key: order of rows within a partition',
+  UNIQUE: 'Unique: the database rejects duplicates',
+  INDEX: 'Secondary index: fast lookup by this field',
+  KEY: 'Lookup key in a key-value store',
+  TTL: 'Expires automatically',
+};
+const FREQ = { hot: 'Hot path', warm: 'Regular', cold: 'Background' };
+const KEYISH = /^(partition key|clustering key|pk|unique|key|ttl|ttl \d+ s)$/i;
+const cleanType = (t) => t.split(/\s*[·,]\s*/).filter((p) => !KEYISH.test(p)).join(' · ') || 'id';
 
 const SECTIONS = [
   { id: 'overview', label: 'Big picture', step: '00' },
@@ -22,6 +37,7 @@ const SECTIONS = [
 
 export default function CaseStudy({ id }) {
   const c = caseById(id);
+  const db = CASE_DB[id];
   const [active, setActive] = useState('overview');
   const p = useProgress();
   const [open, setOpen] = useState(0);
@@ -162,26 +178,71 @@ export default function CaseStudy({ id }) {
 
           <section id="data" className="case-section">
             <h2><span>03</span>Data model</h2>
-            <div className="schema-grid">
-              {c.data.map((t, i) => (
-                <div key={t.name} className="schema">
-                  <div className="schema-head">
-                    <b>{t.name}</b>
-                    <span>{t.store}</span>
+            <p className="section-lede">Each table, its keys, and an example row. The queries below are the reason every key exists.</p>
+            <div className="schema-list">
+              {c.data.map((t, i) => {
+                const meta = db?.tables[t.name] || {};
+                return (
+                  <div key={t.name} className="schema">
+                    <div className="schema-head">
+                      <b>{t.name}</b>
+                      <span>{t.store}</span>
+                    </div>
+                    {c.dataWhy?.[i] && <p className="schema-why">{c.dataWhy[i]}</p>}
+                    <div className="schema-scroll">
+                      <table>
+                        <colgroup><col style={{ width: '22%' }} /><col style={{ width: '30%' }} /><col style={{ width: '16%' }} /><col /></colgroup>
+                        <thead><tr><th>Field</th><th>Type</th><th>Key</th><th>Example</th></tr></thead>
+                        <tbody>
+                          {t.fields.map(([f, type]) => (
+                            <tr key={f}>
+                              <td>{f}</td>
+                              <td>{cleanType(type)}</td>
+                              <td>{(meta.keys?.[f] || []).map((k) => <span key={k} className={`keyb kb-${k.toLowerCase()}`} title={KEY_HELP[k]}>{k}</span>)}</td>
+                              <td className="ex">{meta.example?.[f] ?? '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {t.note && <p className="schema-note"><b>Why this store?</b> {t.note}</p>}
                   </div>
-                  {c.dataWhy?.[i] && <p className="schema-why">{c.dataWhy[i]}</p>}
-                  <table>
-                    <thead><tr><th>Field</th><th>Type / meaning</th></tr></thead>
-                    <tbody>
-                      {t.fields.map(([f, type]) => (
-                        <tr key={f}><td>{f}</td><td>{type}</td></tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {t.note && <p className="schema-note"><b>Why this store?</b> {t.note}</p>}
-                </div>
-              ))}
+                );
+              })}
             </div>
+            <div className="key-legend">
+              {Object.entries(KEY_HELP).map(([k, v]) => <span key={k}><span className={`keyb kb-${k.toLowerCase()}`}>{k}</span>{v}</span>)}
+            </div>
+
+            {db?.queries && (
+              <>
+                <h3 className="sub-h queries-h">Queries these tables serve</h3>
+                <p className="section-lede">Design tables from the queries, not the other way round. Hot queries sit on the main request path and must hit a key.</p>
+                <div className="query-list">
+                  {db.queries.map((q) => (
+                    <div key={q.title} className={`query q-${q.freq}`}>
+                      <div className="query-head">
+                        <span className={`freq f-${q.freq}`}>{FREQ[q.freq]}</span>
+                        <h4>{q.title}</h4>
+                        <span className="query-rate">{q.rate}</span>
+                      </div>
+                      <div className="query-meta">
+                        <span>Table <code>{q.table}</code></span>
+                        <span>Flow <b>{q.flow}</b></span>
+                      </div>
+                      <div className="query-code">
+                        <span>{q.lang}</span>
+                        <pre>{q.query}</pre>
+                      </div>
+                      <div className="query-why">
+                        <p><em>Served by</em><Rich text={q.servedBy} /></p>
+                        <p><em>Why it works</em>{q.why}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </section>
 
           <section id="architecture" className="case-section">

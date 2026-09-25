@@ -962,7 +962,7 @@ export const CASES = [
       { method: 'POST', path: '/api/v1/payments/{id}/refunds', body: '{ amount }', returns: '201' },
     ],
     data: [
-      { name: 'payments', store: 'SQL (strong consistency)', fields: [['payment_id', 'PK'], ['idempotency_key', 'unique'], ['order_id', 'bigint'], ['amount', 'integer minor units (cents!)'], ['status', 'CREATED → PENDING → SUCCEEDED | FAILED']] },
+      { name: 'payments', store: 'SQL (strong consistency)', fields: [['payment_id', 'PK'], ['idempotency_key', 'string · unique'], ['order_id', 'bigint'], ['amount', 'integer minor units (cents!)'], ['status', 'CREATED → PENDING → SUCCEEDED | FAILED'], ['created_at', 'timestamp']] },
       { name: 'ledger_entries', store: 'SQL, append-only', fields: [['entry_id', 'PK'], ['tx_id', 'groups a balanced set'], ['account', 'customer / merchant / fees'], ['direction', 'debit | credit'], ['amount', 'integer']], note: 'For every transaction, debits = credits. Never update or delete — corrections are new entries.' },
       { name: 'outbox', store: 'Same SQL database', fields: [['event_id', 'PK'], ['payload', 'json'], ['published', 'bool']] },
     ],
